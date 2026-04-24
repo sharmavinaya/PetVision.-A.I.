@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Features - PetVision A.I.</title>
+<link rel="stylesheet" href="./style_work.css">
+</head>
+
+<body>
+
+<!-- Header -->
+<header class="header">
+<div class="heading">
+
+<div class="logo-section">
+<img src="images/ai logo.png" class="logo" alt="PetVision AI">
+<h2 class="title">PetVision <span class="highlight">A.I.</span></h2>
+</div>
+
+<nav class="nav">
+<a href="index.html"><button class="safe">Home</button></a>
+<a href="features.html"><button class="safe">Features</button></a>
+<a href="creator.html"><button class="safe">About Creator</button></a>
+<a href="work.html"><button class="safe try">Try It Now</button></a>
+</nav>
+
+</div>
+</header>
+
+
+<!-- MAIN -->
+<main class="main">
+<div class="bg-gradient"></div>
+
+<div class="app-container">
+
+<!-- CAMERA -->
+<div class="card camera-card">
+
+<div class="topbar">
+<div class="dots">
+<span class="d red"></span>
+<span class="d yellow"></span>
+<span class="d green"></span>
+</div>
+
+<div class="status-pill">● System Active</div>
+</div>
+
+<div class="screen">
+
+<video id="camera" autoplay playsinline></video>
+
+<!-- Computer Vision Canvas -->
+<canvas id="canvas"></canvas>
+
+<div class="scan-line"></div>
+
+<div class="frame-corners">
+<span class="c tl"></span>
+<span class="c tr"></span>
+<span class="c bl"></span>
+<span class="c br"></span>
+</div>
+
+</div>
+
+<div class="actions">
+<button class="btn start-btn">🚀 Start Model</button>
+<button class="btn stop-btn">⛔ Stop</button>
+</div>
+
+</div>
+
+
+<!-- SIDE PANEL -->
+<div class="side-panel">
+
+<div class="panel-header">
+<h3>Core Capabilities</h3>
+<p>Advanced AI Intelligence</p>
+</div>
+
+<div class="feature-list">
+
+<div class="feature-item">
+<div class="feat-icon">🐕</div>
+<div class="feat-text">
+<strong>Animal Detection</strong>
+<span>Detects pets with AI model</span>
+</div>
+</div>
+
+<div class="feature-item">
+<div class="feat-icon">👤</div>
+<div class="feat-text">
+<strong>Human Detection</strong>
+<span>Smart security monitoring</span>
+</div>
+</div>
+
+<div class="feature-item">
+<div class="feat-icon">⚡</div>
+<div class="feat-text">
+<strong>Real-time Analytics</strong>
+<span>Live AI detection</span>
+</div>
+</div>
+
+</div>
+
+</div>
+
+</div>
+</main>
+
+
+<!-- footer -->
+
+<footer class="footer">
+    <div class="footer-container">
+        
+        <!-- Brand Section -->
+        <div class="footer-section">
+            <h2>PetVision <span>AI</span></h2>
+            <p>
+                AI-powered animal and human detection system for smarter 
+                surveillance, safety, and intelligent monitoring solutions.
+            </p>
+
+            <div class="social-icons">
+                <a href="index.html">🌐</a>
+                <a href="mailto:vinayaksharmaofficial001@gmail.com">📧</a>
+                <a href="https://github.com/sharmavinaya">🔗</a>
+                <a href="work.html">🐦</a>
+            </div>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="footer-section">
+            <h3>Quick Links</h3>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="features.html">Features</a></li>
+                <li><a href="creator.html">About</a></li>
+                <li><a href="mailto:vinayaksharmaofficial001@gmail.com">
+                Contact
+            </a></li>
+            </ul>
+        </div>
+
+        <!-- Features -->
+        <div class="footer-section">
+            <h3>Features</h3>
+            <ul>
+                <li><a href="features.html">Animal Detection</a></li>
+                <li><a href="features.html">Human Detection</a></li>
+                <li><a href="features.html">Real-time Monitoring</a></li>
+                <li><a href="features.html">AI Analytics</a></li>
+            </ul>
+        </div>
+
+        <!-- Contact -->
+        <div class="footer-section">
+            <h3>Contact</h3>
+            <p>Email:</p>
+            <a href="mailto:vinayaksharmaofficial001@gmail.com">
+                vinayaksharmaofficial001@gmail.com
+            </a>
+
+            <p class="creator">Created by <b>Vinayak Sharma</b></p>
+        </div>
+
+    </div>
+
+    <div class="footer-bottom">
+        <p>© 2026 Vinayak Sharma. All Rights Reserved.</p>
+        <p>This Website and its Content are My Property</p>
+    </div>
+</footer>
+
+
+
+<script>
+
+const video = document.getElementById("camera");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+const startBtn = document.querySelector(".start-btn");
+const stopBtn = document.querySelector(".stop-btn");
+
+let stream = null;
+let interval = null;
+
+const API_URL = "/predict";
+
+// 🎨 COLORS
+const COLORS = {
+    cat: "#ff4d4d",
+    dog: "#00ffcc",
+    human: "#0077ff"
+};
+
+// 🧠 ACTIVE OBJECTS (track objects)
+let activeDetections = [];
+let lastSeenTime = {};
+const DISAPPEAR_TIME = 1500; // 1.5 sec buffer (smooth experience)
+
+
+// ========================
+// START CAMERA
+// ========================
+async function startCamera(){
+
+    if(stream) stopCamera();
+
+    stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    video.srcObject = stream;
+
+    startPrediction();
+}
+
+
+// ========================
+// STOP CAMERA
+// ========================
+function stopCamera(){
+
+    if(stream){
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+    }
+
+    if(interval){
+        clearInterval(interval);
+        interval = null;
+    }
+
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    activeDetections = [];
+    lastSeenTime = {};
+}
+
+
+// ========================
+// PREDICTION LOOP
+// ========================
+function startPrediction(){
+
+    if(interval) clearInterval(interval);
+
+    const tempCanvas = document.createElement("canvas");
+    const tempCtx = tempCanvas.getContext("2d");
+
+    interval = setInterval(async ()=>{
+
+        if(!video.videoWidth) return;
+
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        tempCanvas.width = video.videoWidth;
+        tempCanvas.height = video.videoHeight;
+
+        tempCtx.drawImage(video,0,0);
+
+        tempCanvas.toBlob(async(blob)=>{
+
+            let formData = new FormData();
+            formData.append("file",blob,"frame.jpg");
+
+            try{
+                let response = await fetch(API_URL,{
+                    method:"POST",
+                    body:formData
+                });
+
+                let detections = await response.json();
+
+                const now = Date.now();
+
+                // 🔥 UPDATE detections
+                detections.forEach(det => {
+
+                    const key = det.class; // simple tracking by class
+
+                    lastSeenTime[key] = now;
+
+                    // update or add
+                    const index = activeDetections.findIndex(d => d.class === key);
+
+                    if(index !== -1){
+                        activeDetections[index] = det;
+                    }else{
+                        activeDetections.push(det);
+                    }
+
+                });
+
+                // ❌ REMOVE disappeared objects
+                activeDetections = activeDetections.filter(det => {
+                    const key = det.class;
+                    return (now - (lastSeenTime[key] || 0)) < DISAPPEAR_TIME;
+                });
+
+                drawDetections();
+
+            }catch(error){
+                console.log(error);
+            }
+
+        },"image/jpeg");
+
+    },300); // faster = smoother
+}
+
+
+// ========================
+// DRAW DETECTIONS
+// ========================
+function drawDetections(){
+
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    activeDetections.forEach(det => {
+
+        const [x1,y1,x2,y2] = det.box;
+        const label = det.class;
+        const confidence = det.confidence;
+
+        const color = COLORS[label] || "#fff";
+
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = 3;
+
+        // 📦 Box follows object EXACTLY (YOLO box)
+        ctx.strokeRect(x1,y1,x2-x1,y2-y1);
+
+        ctx.font = "16px Arial";
+        ctx.fillText(
+            `${label.toUpperCase()} ${(confidence*100).toFixed(1)}%`,
+            x1,
+            y1 - 8
+        );
+
+    });
+}
+
+
+// ========================
+// BUTTON EVENTS
+// ========================
+startBtn.addEventListener("click",startCamera);
+stopBtn.addEventListener("click",stopCamera);
+
+</script>
+
+</body>
+</html>
