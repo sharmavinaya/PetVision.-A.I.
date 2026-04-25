@@ -11,8 +11,9 @@ CORS(app)
 # ========================
 # Load YOLOv8 Model
 # ========================
-model_path = os.path.join(os.path.dirname(__file__), "yolov8n.pt")
-model = YOLO(model_path)
+from ultralytics import YOLO
+
+model = YOLO("yolov8n.pt")
 
 TARGET_CLASSES = ["cat", "dog", "person"]
 
