@@ -5,54 +5,87 @@ import numpy as np
 import cv2
 import os
 
+# ========================
+# INIT APP
+# ========================
 app = Flask(__name__, static_folder="../frontend", static_url_path="")
 CORS(app)
 
 # ========================
-# Load YOLOv8 Model
+# LOAD YOLO MODEL
 # ========================
-from ultralytics import YOLO
-
+print("🚀 Loading YOLO model...")
 model = YOLO("yolov8n.pt")
+print("✅ Model loaded")
 
 TARGET_CLASSES = ["cat", "dog", "person"]
 
+# ========================
+# PREDICT ROUTE (FIXED)
+# ========================
 @app.route("/predict", methods=["POST"])
 def predict():
-    file = request.files["file"]
-    img_bytes = file.read()
+    try:
+        print("🔥 PREDICT CALLED")
 
-    npimg = np.frombuffer(img_bytes, np.uint8)
-    img = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
+        # ✅ Safe file access
+        file = request.files.get("file")
+        if file is None:
+            print("❌ No file received")
+            return jsonify([])
 
-    results = model(img)
+        img_bytes = file.read()
 
-    detections = []
+        # ✅ Convert bytes → image
+        npimg = np.frombuffer(img_bytes, np.uint8)
+        img = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
 
-    for r in results:
-        for box in r.boxes:
+        if img is None:
+            print("❌ Image decode failed")
+            return jsonify([])
 
-            cls_id = int(box.cls[0])
-            confidence = float(box.conf[0])
-            class_name = model.names[cls_id]
+        # ✅ Run YOLO
+        results = model(img, conf=0.25)
 
-            if class_name not in TARGET_CLASSES:
+        print("📦 Boxes:", results[0].boxes)
+
+        detections = []
+
+        for r in results:
+            if r.boxes is None:
                 continue
 
-            if confidence < 0.25:
-                continue
+            for box in r.boxes:
 
-            x1, y1, x2, y2 = map(int, box.xyxy[0])
+                cls_id = int(box.cls[0])
+                confidence = float(box.conf[0])
+                class_name = model.names[cls_id]
 
-            detections.append({
-                "class": class_name,
-                "confidence": confidence,
-                "box": [x1, y1, x2, y2]
-            })
+                if class_name not in TARGET_CLASSES:
+                    continue
 
-    return jsonify(detections)
+                if confidence < 0.25:
+                    continue
 
-# ✅ Serve frontend
+                x1, y1, x2, y2 = map(int, box.xyxy[0])
+
+                detections.append({
+                    "class": class_name,
+                    "confidence": confidence,
+                    "box": [x1, y1, x2, y2]
+                })
+
+        print("✅ Detections:", detections)
+
+        return jsonify(detections)
+
+    except Exception as e:
+        print("❌ ERROR:", str(e))
+        return jsonify([])
+
+# ========================
+# SERVE FRONTEND
+# ========================
 @app.route("/")
 def serve_frontend():
     return app.send_static_file("index.html")
