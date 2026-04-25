@@ -39,7 +39,7 @@ def predict():
             if class_name not in TARGET_CLASSES:
                 continue
 
-            if confidence < 0.6:
+            if confidence < 0.25:
                 continue
 
             x1, y1, x2, y2 = map(int, box.xyxy[0])
