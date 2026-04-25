@@ -1,8 +1,6 @@
 flask==3.0.0
 flask-cors==4.0.0
-
-torchvision==0.20.1
 ultralytics
-opencv-python-headless==4.8.1.78
-numpy
 gunicorn
+torch
+torchvision
