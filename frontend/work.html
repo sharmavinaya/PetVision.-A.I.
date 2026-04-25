@@ -194,7 +194,7 @@ const stopBtn = document.querySelector(".stop-btn");
 let stream = null;
 let interval = null;
 
-const API_URL = "/predict";
+const API_URL = window.location.origin + "/predict";
 
 // 🎨 COLORS
 const COLORS = {
